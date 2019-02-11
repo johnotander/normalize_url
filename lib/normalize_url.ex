@@ -23,7 +23,7 @@ defmodule NormalizeUrl do
   def normalize_url(url, options \\ []) do
     scheme = filter_scheme(url)
 
-    if (scheme == "http") || (scheme == "ftp") || (scheme == nil) do
+    if scheme == "http" || scheme == "ftp" || scheme == nil do
       normalize_http_or_ftp_url(url, options)
     else
       url
@@ -43,66 +43,96 @@ defmodule NormalizeUrl do
   end
 
   defp normalize_http_or_ftp_url(url, options) do
-    options = Keyword.merge([
-      normalize_protocol: true,
-      strip_www: true,
-      strip_fragment: true,
-      add_root_path: false
-    ], options)
+    options =
+      Keyword.merge(
+        [
+          normalize_protocol: true,
+          strip_www: true,
+          strip_fragment: true,
+          add_root_path: false
+        ],
+        options
+      )
 
     url = if Regex.match?(~r/^\/\//, url), do: "http:" <> url, else: url
 
-    if options[:normalize_protocol] do
-      scheme = if Regex.match?(~r/^ftp:\/\//, url), do: "ftp://", else: "http://"
-    else
-      scheme = "//"
-    end
+    scheme =
+      if options[:normalize_protocol] do
+        if Regex.match?(~r/^ftp:\/\//, url), do: "ftp://", else: "http://"
+      else
+        "//"
+      end
 
-    if options[:normalize_protocol] && !Regex.match?(~r/^(http|ftp:\/\/)/, url) do
-      url = "http://" <> url
-    end
+    url =
+      if options[:normalize_protocol] && !Regex.match?(~r/^(http|ftp:\/\/)/, url) do
+        "http://" <> url
+      else
+        url
+      end
 
-    uri = if options[:downcase] do
-      URI.parse(String.downcase(url))
-    else
-      URI.parse(url)
-    end
+    uri =
+      if options[:downcase] do
+        URI.parse(String.downcase(url))
+      else
+        URI.parse(url)
+      end
 
-    port = if options[:normalize_protocol] && uri.port, do: ":" <> Integer.to_string(uri.port), else: ""
-    if uri.port == 8080 || uri.port == 443 do
-      port = ""
-      scheme = "https://"
-    end
+    port =
+      if options[:normalize_protocol] && uri.port,
+        do: ":" <> Integer.to_string(uri.port),
+        else: ""
 
-    if uri.port == 21 && scheme == "ftp://" do
-      port = ""
-    end
+    {port, scheme} =
+      if uri.port == 8080 || uri.port == 443 do
+        {"", "https://"}
+      else
+        {port, scheme}
+      end
 
-    if options[:normalize_protocol] && uri.port == 80 do
-      port = ""
-      scheme = "http://"
-    end
+    port =
+      if uri.port == 21 && scheme == "ftp://" do
+        ""
+      else
+        port
+      end
+
+    {port, scheme} =
+      if options[:normalize_protocol] && uri.port == 80 do
+        {"", "http://"}
+      else
+        {port, scheme}
+      end
 
     path = uri.path
-    if options[:add_root_path] && is_nil(path) do
-      path = "/"
-    end
+
+    path =
+      if options[:add_root_path] && is_nil(path) do
+        "/"
+      else
+        path
+      end
 
     host_and_path = if path, do: uri.host <> port <> path, else: uri.host <> port
 
-    if !options[:strip_fragment] && uri.fragment do
-      host_and_path = host_and_path <> "#" <> uri.fragment
-    end
+    host_and_path =
+      if !options[:strip_fragment] && uri.fragment do
+        host_and_path <> "#" <> uri.fragment
+      else
+        host_and_path
+      end
 
-    if options[:strip_www] do
-      host_and_path = Regex.replace(~r/^www\./, host_and_path, "")
-    end
+    host_and_path =
+      if options[:strip_www] do
+        Regex.replace(~r/^www\./, host_and_path, "")
+      else
+        host_and_path
+      end
 
     scheme <> host_and_path <> query_params(uri.query)
   end
 
   defp query_params(nil), do: ""
-  defp query_params(query), do: "?" <> (query |> URI.decode_query |> URI.encode_query)
+  defp query_params(query), do: "?" <> (query |> URI.decode_query() |> URI.encode_query())
 
   # Taken from https://www.iana.org/assignments/uri-schemes/uri-schemes.txt
   defp iana_schemes do
@@ -374,7 +404,7 @@ defmodule NormalizeUrl do
     z39.50
     z39.50r
     z39.50s
-    """ |> String.split(~r/\n/, trim: true)
+    """
+    |> String.split(~r/\n/, trim: true)
   end
-
 end
