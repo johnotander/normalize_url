@@ -5,15 +5,15 @@ defmodule NormalizeUrl.Mixfile do
     [
       app: :normalize_url,
       version: "0.3.2",
-      elixir: "~> 1.1",
-      build_embedded: Mix.env == :prod,
-      start_permanent: Mix.env == :prod,
+      elixir: "~> 1.7",
+      build_embedded: Mix.env() == :prod,
+      start_permanent: Mix.env() == :prod,
       deps: deps(),
       description: "Normalize a url",
       package: [
         maintainers: ["John Otander"],
         licenses: ["MIT"],
-        links: %{ "Github" => "https://github.com/johnotander/normalize_url" }
+        links: %{"Github" => "https://github.com/johnotander/normalize_url"}
       ]
     ]
   end
